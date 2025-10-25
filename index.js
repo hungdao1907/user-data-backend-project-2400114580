@@ -1,41 +1,61 @@
-// index.js
+/*
+* ========================================
+* FILE: index.js (Main Server File)
+* MÔ TẢ: Khởi tạo Server Express, kết nối MongoDB,
+* và định tuyến các API request (Week 3 + Week 4)
+* ========================================
+*/
 
-// 1. Import thư viện Express
+// --- 1. IMPORT CÁC MODULE CẦN THIẾT ---
 const express = require('express');
+const dotenv = require('dotenv');
+const mongoose = require('mongoose');
+const connectDB = require('./db'); // File kết nối MongoDB
 
-// 2. Khởi tạo ứng dụng Express
-const app = express();
-const PORT = 3000; // Cổng Server thường dùng
-
-// Week 3: Tạo các route riêng biệt trong file routes/userRoutes.js
-// 1. IMPORT Router
+// --- 2. IMPORT CÁC ROUTER (TỪ TUẦN 3) ---
 const userRoutes = require('./routes/userRoutes');
 
-// 2. MIDDLEWARE: BẮT BUỘC phải có để đọc Body JSON từ Request (POST, PUT, PATCH)
-app.use(express.json());
+// --- 3. CẤU HÌNH BIẾN MÔI TRƯỜNG (.env) ---
+dotenv.config(); // Đọc file .env để lấy MONGO_URI và PORT
 
-// 3. ĐỊNH TUYẾN GỐC: Tất cả các route trong userRoutes sẽ bắt đầu bằng /api/v1/users
+// --- 4. KHỞI TẠO ỨNG DỤNG EXPRESS ---
+const app = express();
+
+// --- 5. KẾT NỐI CƠ SỞ DỮ LIỆU MONGODB ---
+connectDB();
+
+// --- 6. CẤU HÌNH MIDDLEWARE ---
+app.use(express.json()); // Cho phép đọc dữ liệu JSON từ body request
+
+// --- 7. ĐỊNH TUYẾN API (ROUTES) ---
+// Mọi request bắt đầu bằng /api/v1/users sẽ được xử lý bởi userRoutes
 app.use('/api/v1/users', userRoutes);
 
-// 3. Xây dựng Route/Endpoint đầu tiên (API chào mừng)
-// Phương thức GET, đường dẫn '/'
+// Route kiểm tra server và trạng thái DB
 app.get('/', (req, res) => {
-    // Trả về phản hồi JSON
-    res.json({ message: "Chào mừng đến với API Dữ liệu Người dùng!" });
+  res.status(200).json({
+    message: "Chào mừng đến với User Data Backend API (Week 3 + 4)",
+    status: "Server is running",
+    database_status:
+      mongoose.connection.readyState === 1 ? "Connected" : "Disconnected",
+  });
 });
 
-// API để kiểm tra trạng thái hoạt động của Server
+// Route kiểm tra tình trạng API cụ thể
 app.get('/api/v1/status', (req, res) => {
-    // Trả về một phản hồi JSON chứa thông tin trạng thái
-    res.json({
-        service: "User Data API",
-        version: "1.0",
-        health: "Good",
-        timestamp: new Date().toISOString() // Thêm thời gian hiện tại
-    });
+  res.json({
+    service: "User Data API",
+    version: "1.0",
+    health: "Good",
+    timestamp: new Date().toISOString(),
+    database_status:
+      mongoose.connection.readyState === 1 ? "Connected" : "Disconnected",
+  });
 });
 
-// 4. Lắng nghe các yêu cầu tại cổng đã định nghĩa
+// --- 8. KHỞI ĐỘNG SERVER ---
+const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-    console.log(`✅ Server đang chạy tại http://localhost:${PORT}`);
+  console.log(`✅ Server đang chạy tại http://localhost:${PORT}`);
+  console.log("⏳ Đang chờ kết nối MongoDB...");
 });
