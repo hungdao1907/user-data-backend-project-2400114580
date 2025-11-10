@@ -1,77 +1,127 @@
 // routes/userRoutes.js
-
 const express = require('express');
 const router = express.Router();
+const User = require('../models/User'); // ⚙️ import model User
 
-// 1. ENDPOINT: Lấy Danh sách Người dùng (READ All)
-// Phương thức: GET | Đường dẫn cuối cùng: /api/v1/users/
-router.get('/', (req, res) => {
-  // GIẢ LẬP: Trả về một mảng dữ liệu người dùng ảo.
-  const userList = [
-    { id: 1, username: "Alice" },
-    { id: 2, username: "Bob" }
-  ];
-
-  // Luôn trả về 200 OK khi đọc thành công
-  res.status(200).json({
-    message: "Lấy danh sách người dùng thành công (200 OK)",
-    data: userList
-  });
-});
-
-// 2. ENDPOINT: Tạo Người dùng Mới (CREATE)
-// Phương thức: POST | Đường dẫn cuối cùng: /api/v1/users/
-router.post('/', (req, res) => {
-  // Dữ liệu người dùng được gửi từ Client nằm trong req.body
-  const userData = req.body;
-
-  // Luôn trả về 201 Created khi tạo mới thành công
-  res.status(201).json({
-    message: "Người dùng đã được tạo thành công (201 Created)",
-    receivedData: userData
-  });
-});
-
-// ----------------------------------------------------
-// 3. ENDPOINT: Lấy Chi tiết Người dùng (READ One)
-// Phương thức: GET | Đường dẫn cuối cùng: /api/v1/users/:id
-router.get('/:id', (req, res) => {
-  const userId = req.params.id;
-
-  // [LOGIC ẢO]: Giả định ID hợp lệ là 1, các ID khác trả về 404
-  if (userId === '1') {
+// =======================================================
+// 1️⃣ LẤY DANH SÁCH NGƯỜI DÙNG (READ All)
+// GET | /api/v1/users/
+// =======================================================
+router.get('/', async (req, res) => {
+  try {
+    const users = await User.find().select('-password'); // loại bỏ password
     res.status(200).json({
-      message: `GET: Chi tiết người dùng ID: ${userId} thành công`,
-      data: { id: userId, username: "Alice", status: "active", email: "alice@dev.com" }
+      message: "Lấy danh sách người dùng thành công (200 OK)",
+      data: users,
     });
-  } else {
-    res.status(404).json({
-      message: `GET: Không tìm thấy người dùng có ID: ${userId}`
+  } catch (err) {
+    res.status(500).json({
+      message: "Lỗi server khi lấy danh sách người dùng",
+      error: err.message,
     });
   }
 });
 
-// ----------------------------------------------------
-// 4. ENDPOINT: Cập nhật Người dùng (UPDATE)
-// Phương thức: PUT | Đường dẫn cuối cùng: /api/v1/users/:id
-router.put('/:id', (req, res) => {
-  const userId = req.params.id;
-  const updateData = req.body;
+// =======================================================
+// 2️⃣ TẠO NGƯỜI DÙNG MỚI (CREATE)
+// POST | /api/v1/users/
+// =======================================================
+router.post('/', async (req, res) => {
+  try {
+    // req.body chứa username, email, password (thô)
+    // Hook 'pre-save' trong User.js sẽ tự hash password
+    const newUser = await User.create(req.body);
 
-  res.status(200).json({
-    message: `PUT: Cập nhật người dùng ID ${userId} thành công (200 OK)`,
-    updatedData: updateData
-  });
+    res.status(201).json({
+      message: "Tạo User thành công!",
+      data: newUser,
+    });
+  } catch (err) {
+    // Nếu dữ liệu không hợp lệ (trùng email, thiếu trường, minlength...)
+    res.status(400).json({
+      message: "Tạo User thất bại",
+      error: err.message,
+    });
+  }
 });
 
-// ----------------------------------------------------
-// 5. ENDPOINT: Xóa Người dùng (DELETE)
-// Phương thức: DELETE | Đường dẫn cuối cùng: /api/v1/users/:id
-router.delete('/:id', (req, res) => {
-  const userId = req.params.id;
+// =======================================================
+// 3️⃣ LẤY CHI TIẾT NGƯỜI DÙNG (READ One)
+// GET | /api/v1/users/:id
+// =======================================================
+router.get('/:id', async (req, res) => {
+  try {
+    const user = await User.findById(req.params.id).select('-password');
+    if (!user) {
+      return res.status(404).json({
+        message: `Không tìm thấy người dùng có ID: ${req.params.id}`,
+      });
+    }
 
-  // [LOGIC ẢO]: Giả định luôn xóa thành công
-  res.status(204).send();
+    res.status(200).json({
+      message: "Lấy chi tiết người dùng thành công (200 OK)",
+      data: user,
+    });
+  } catch (err) {
+    res.status(400).json({
+      message: "Lỗi khi lấy chi tiết người dùng",
+      error: err.message,
+    });
+  }
 });
 
+// =======================================================
+// 4️⃣ CẬP NHẬT NGƯỜI DÙNG (UPDATE)
+// PUT | /api/v1/users/:id
+// =======================================================
+router.put('/:id', async (req, res) => {
+  try {
+    const updatedUser = await User.findByIdAndUpdate(
+      req.params.id,
+      req.body,
+      { new: true, runValidators: true, select: '-password' }
+    );
+
+    if (!updatedUser) {
+      return res.status(404).json({
+        message: `Không tìm thấy người dùng có ID: ${req.params.id}`,
+      });
+    }
+
+    res.status(200).json({
+      message: `Cập nhật người dùng ID ${req.params.id} thành công (200 OK)`,
+      data: updatedUser,
+    });
+  } catch (err) {
+    res.status(400).json({
+      message: "Cập nhật thất bại",
+      error: err.message,
+    });
+  }
+});
+
+// =======================================================
+// 5️⃣ XÓA NGƯỜI DÙNG (DELETE)
+// DELETE | /api/v1/users/:id
+// =======================================================
+router.delete('/:id', async (req, res) => {
+  try {
+    const deletedUser = await User.findByIdAndDelete(req.params.id);
+
+    if (!deletedUser) {
+      return res.status(404).json({
+        message: `Không tìm thấy người dùng có ID: ${req.params.id}`,
+      });
+    }
+
+    res.status(204).send(); // 204 No Content
+  } catch (err) {
+    res.status(400).json({
+      message: "Xóa người dùng thất bại",
+      error: err.message,
+    });
+  }
+});
+
+// =======================================================
 module.exports = router;
