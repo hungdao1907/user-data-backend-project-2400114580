@@ -23,27 +23,11 @@ router.get('/', async (req, res) => {
 });
 
 // =======================================================
-// 2️⃣ TẠO NGƯỜI DÙNG MỚI (CREATE)
-// POST | /api/v1/users/
+// 2️⃣ ❌ XÓA PHẦN TẠO USER (POST /)
+// Vì ĐÃ CHUYỂN sang authRoutes.js
 // =======================================================
-router.post('/', async (req, res) => {
-  try {
-    // req.body chứa username, email, password (thô)
-    // Hook 'pre-save' trong User.js sẽ tự hash password
-    const newUser = await User.create(req.body);
+// ❌ router.post('/', ...) — ĐÃ XÓA ❌
 
-    res.status(201).json({
-      message: "Tạo User thành công!",
-      data: newUser,
-    });
-  } catch (err) {
-    // Nếu dữ liệu không hợp lệ (trùng email, thiếu trường, minlength...)
-    res.status(400).json({
-      message: "Tạo User thất bại",
-      error: err.message,
-    });
-  }
-});
 
 // =======================================================
 // 3️⃣ LẤY CHI TIẾT NGƯỜI DÙNG (READ One)
@@ -79,8 +63,8 @@ router.put('/:id', async (req, res) => {
     const updatedUser = await User.findByIdAndUpdate(
       req.params.id,
       req.body,
-      { new: true, runValidators: true, select: '-password' }
-    );
+      { new: true, runValidators: true }
+    ).select('-password');
 
     if (!updatedUser) {
       return res.status(404).json({
@@ -89,7 +73,7 @@ router.put('/:id', async (req, res) => {
     }
 
     res.status(200).json({
-      message: `Cập nhật người dùng ID ${req.params.id} thành công (200 OK)`,
+      message: `Cập nhật người dùng ID ${req.params.id} thành công`,
       data: updatedUser,
     });
   } catch (err) {
