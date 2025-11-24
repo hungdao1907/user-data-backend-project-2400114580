@@ -14,7 +14,7 @@ const connectDB = require('./db'); // File kết nối MongoDB
 
 // --- 2. IMPORT CÁC ROUTER (TỪ TUẦN 3) ---
 const userRoutes = require('./routes/userRoutes');
-
+const authRoutes = require('./routes/authRoutes'); // <-- THÊM DÒNG NÀY
 // --- 3. CẤU HÌNH BIẾN MÔI TRƯỜNG (.env) ---
 dotenv.config(); // Đọc file .env để lấy MONGO_URI và PORT
 
@@ -52,6 +52,9 @@ app.get('/api/v1/status', (req, res) => {
       mongoose.connection.readyState === 1 ? "Connected" : "Disconnected",
   });
 });
+
+// --- ĐỊNH TUYẾN (API ROUTES) ---
+app.use('/api/v1/auth', authRoutes); 
 
 // --- 8. KHỞI ĐỘNG SERVER ---
 const PORT = process.env.PORT || 3000;
