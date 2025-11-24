@@ -1,17 +1,20 @@
 // routes/userRoutes.js
 const express = require('express');
 const router = express.Router();
-const User = require('../models/User'); // ⚙️ import model User
+const User = require('../models/User');
+
+// ➕ Import middleware auth
+const { protect, authorize } = require('../middleware/authMiddleware');
 
 // =======================================================
-// 1️⃣ LẤY DANH SÁCH NGƯỜI DÙNG (READ All)
+// 1️⃣ LẤY DANH SÁCH NGƯỜI DÙNG (Chỉ Admin)
 // GET | /api/v1/users/
 // =======================================================
-router.get('/', async (req, res) => {
+router.get('/', protect, authorize('admin'), async (req, res) => {
   try {
-    const users = await User.find().select('-password'); // loại bỏ password
+    const users = await User.find().select('-password');
     res.status(200).json({
-      message: "Lấy danh sách người dùng thành công (200 OK)",
+      message: "Lấy danh sách người dùng thành công (Admin only)",
       data: users,
     });
   } catch (err) {
@@ -23,19 +26,33 @@ router.get('/', async (req, res) => {
 });
 
 // =======================================================
-// 2️⃣ ❌ XÓA PHẦN TẠO USER (POST /)
-// Vì ĐÃ CHUYỂN sang authRoutes.js
+// 2️⃣ LẤY PROFILE CỦA USER ĐANG ĐĂNG NHẬP
+// GET | /api/v1/users/me
 // =======================================================
-// ❌ router.post('/', ...) — ĐÃ XÓA ❌
+router.get('/me', protect, async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id).select('-password');
 
+    res.status(200).json({
+      message: "Lấy thông tin cá nhân thành công",
+      data: user,
+    });
+  } catch (err) {
+    res.status(500).json({
+      message: "Lỗi server khi lấy profile",
+      error: err.message,
+    });
+  }
+});
 
 // =======================================================
-// 3️⃣ LẤY CHI TIẾT NGƯỜI DÙNG (READ One)
+// 3️⃣ LẤY CHI TIẾT NGƯỜI DÙNG THEO ID (Chỉ Admin)
 // GET | /api/v1/users/:id
 // =======================================================
-router.get('/:id', async (req, res) => {
+router.get('/:id', protect, authorize('admin'), async (req, res) => {
   try {
     const user = await User.findById(req.params.id).select('-password');
+
     if (!user) {
       return res.status(404).json({
         message: `Không tìm thấy người dùng có ID: ${req.params.id}`,
@@ -43,7 +60,7 @@ router.get('/:id', async (req, res) => {
     }
 
     res.status(200).json({
-      message: "Lấy chi tiết người dùng thành công (200 OK)",
+      message: "Lấy chi tiết người dùng thành công",
       data: user,
     });
   } catch (err) {
@@ -55,10 +72,10 @@ router.get('/:id', async (req, res) => {
 });
 
 // =======================================================
-// 4️⃣ CẬP NHẬT NGƯỜI DÙNG (UPDATE)
+// 4️⃣ CẬP NHẬT NGƯỜI DÙNG (Chỉ Admin)
 // PUT | /api/v1/users/:id
 // =======================================================
-router.put('/:id', async (req, res) => {
+router.put('/:id', protect, authorize('admin'), async (req, res) => {
   try {
     const updatedUser = await User.findByIdAndUpdate(
       req.params.id,
@@ -85,10 +102,10 @@ router.put('/:id', async (req, res) => {
 });
 
 // =======================================================
-// 5️⃣ XÓA NGƯỜI DÙNG (DELETE)
+// 5️⃣ XÓA NGƯỜI DÙNG (Chỉ Admin)
 // DELETE | /api/v1/users/:id
 // =======================================================
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', protect, authorize('admin'), async (req, res) => {
   try {
     const deletedUser = await User.findByIdAndDelete(req.params.id);
 
@@ -98,7 +115,7 @@ router.delete('/:id', async (req, res) => {
       });
     }
 
-    res.status(204).send(); // 204 No Content
+    res.status(204).send(); // No content
   } catch (err) {
     res.status(400).json({
       message: "Xóa người dùng thất bại",
