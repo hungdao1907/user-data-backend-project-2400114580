@@ -31,6 +31,8 @@ app.use(express.json()); // Cho phép đọc dữ liệu JSON từ body request
 // Mọi request bắt đầu bằng /api/v1/users sẽ được xử lý bởi userRoutes
 app.use('/api/v1/users', userRoutes);
 
+// --- 8. error middleware
+const errorHandler = require('./middleware/errorMiddleware');
 // Route kiểm tra server và trạng thái DB
 app.get('/', (req, res) => {
   res.status(200).json({
@@ -56,6 +58,8 @@ app.get('/api/v1/status', (req, res) => {
 // --- ĐỊNH TUYẾN (API ROUTES) ---
 app.use('/api/v1/auth', authRoutes); 
 
+// -- middle ware
+app.use(errorHandler);
 // --- 8. KHỞI ĐỘNG SERVER ---
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
